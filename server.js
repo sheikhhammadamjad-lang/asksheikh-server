@@ -24,4 +24,4 @@ app.post('/chat', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-app.listen(process.env.PORT, () => console.log('Running'));
+app.listen(process.env.PORT || 3000, () => console.log('Running'));
