@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ask Sheikh — AI Startup Mentor by BizTherapist</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1A2744;
+    --navy-dark: #0F1A30;
+    --navy-mid: #243358;
+    --orange: #E85D1A;
+    --orange-light: #F07840;
+    --silver: #C4C8D0;
+    --bg: #F0F2F5;
+    --white: #ffffff;
+    --text: #1A2744;
+    --muted: #6B7A99;
+    --border: #D8DCE8;
+    --shadow: rgba(26,39,68,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* Header */
+  header {
+    background: var(--navy-dark);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--orange);
+  }
+
+  .logo { display: flex; align-items: center; gap: 14px; }
+
+  .logo-emblem {
+    width: 42px;
+    height: 42px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 2px solid var(--orange);
+    background: var(--navy-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--white);
+    letter-spacing: 0.05em;
+  }
+
+  .logo-text-wrap { display: flex; flex-direction: column; }
+
+  .logo-main {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .logo-ask {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--orange);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .logo-sheikh {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--white);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .logo-sub {
+    font-size: 0.62rem;
+    color: var(--silver);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  .beta-tag {
+    background: var(--orange);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .header-compliance {
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.06em;
+    text-align: right;
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(160deg, var(--navy-dark) 0%, var(--navy) 50%, #1E3060 100%);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 80% 20%, rgba(232,93,26,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, rgba(232,93,26,0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* Decorative wing lines */
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 300px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  }
+
+  .hero-eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 0.6rem;
+    position: relative;
+    font-weight: 600;
+  }
+
+  .hero-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    color: var(--white);
+    font-weight: 800;
+    line-height: 1.05;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    position: relative;
+  }
+
+  .hero-title span { color: var(--orange); }
+
+  .hero-sub {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.55);
+    max-width: 500px;
+    margin: 0 auto 1.25rem;
+    line-height: 1.6;
+    position: relative;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .stat { text-align: center; }
+  .stat-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+
+  .hero-badges {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .badge {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--silver);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+
+  .badge.highlight {
+    background: rgba(232,93,26,0.15);
+    border-color: rgba(232,93,26,0.4);
+    color: var(--orange-light);
+  }
+
+  /* Chat */
+  .chat-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 820px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 0;
+  }
+
+  .messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    min-height: 280px;
+  }
+
+  .welcome-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    animation: fadeUp 0.5s ease;
+    box-shadow: 0 4px 16px var(--shadow);
+  }
+
+  .welcome-card p { font-size: 0.9rem; line-height: 1.75; color: var(--text); }
+  .welcome-card p + p { margin-top: 0.5rem; }
+  .welcome-card strong { color: var(--orange); }
+
+  .message { display: flex; gap: 0.7rem; animation: fadeUp 0.3s ease; }
+  .message.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    margin-top: 2px;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .avatar.sheikh {
+    background: var(--orange);
+    color: white;
+    border: 2px solid var(--orange-light);
+  }
+
+  .avatar.user-av {
+    background: var(--navy);
+    color: white;
+  }
+
+  .bubble {
+    max-width: 84%;
+    padding: 0.85rem 1.1rem;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    line-height: 1.75;
+  }
+
+  .message.sheikh .bubble {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+    color: var(--text);
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+
+  .message.user .bubble {
+    background: var(--navy);
+    color: white;
+    border-top-right-radius: 4px;
+  }
+
+  .typing { display: flex; gap: 0.7rem; align-items: center; }
+  .typing-dots {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    border-top-left-radius: 4px;
+    padding: 0.85rem 1.1rem;
+    display: flex; gap: 5px; align-items: center;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+  .dot { width: 7px; height: 7px; background: var(--orange); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Input */
+  .input-area {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    padding: 1rem 0 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .suggestions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.7rem;
+  }
+
+  .suggestion {
+    background: var(--white);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+  }
+
+  .suggestion:hover {
+    background: var(--orange);
+    color: white;
+    border-color: var(--orange);
+  }
+
+  .input-row { display: flex; gap: 0.7rem; align-items: flex-end; }
+
+  textarea {
+    flex: 1;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text);
+    resize: none;
+    min-height: 48px;
+    max-height: 140px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  textarea:focus { border-color: var(--orange); }
+  textarea::placeholder { color: #9BA8BF; }
+
+  .send-btn {
+    width: 48px; height: 48px;
+    background: var(--orange);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(232,93,26,0.4);
+  }
+
+  .send-btn:hover { background: var(--navy); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,39,68,0.4); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; box-shadow: none; }
+  .send-btn svg { width: 18px; height: 18px; fill: white; }
+
+  footer {
+    text-align: center;
+    padding: 0.8rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    background: var(--navy-dark);
+    color: rgba(255,255,255,0.3);
+  }
+  footer a { color: var(--orange); text-decoration: none; }
+
+  .error-bubble { background: #fff5f5; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 10px; padding: 0.8rem 1rem; font-size: 0.84rem; margin-left: 44px; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  @media (max-width: 600px) {
+    .hero { padding: 2rem 1rem; }
+    .header-compliance { display: none; }
+    .hero-stats { gap: 1.2rem; }
+    .chat-wrapper { padding: 1rem 1rem 0; }
+    .bubble { max-width: 90%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-emblem">
+      <div class="logo-circle">AS</div>
+    </div>
+    <div class="logo-text-wrap">
+      <div class="logo-main">
+        <span class="logo-ask">Ask</span>
+        <span class="logo-sheikh">Sheikh</span>
+      </div>
+      <div class="logo-sub">Your Mentoring Agent · by BizTherapist</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="beta-tag">Beta</span>
+    <span class="header-compliance">Built on Responsible AI</span>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-eyebrow">Sheikh Hammad Amjad · BizTherapist</div>
+  <h1 class="hero-title">Your <span>AI Startup</span><br>Mentor Is Here</h1>
+  <p class="hero-sub">Direct. Practical. No sugarcoating. The same advice Sheikh gives in a real mentoring session — available 24/7.</p>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-number">1000+</div>
+      <div class="stat-label">Founders Mentored</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">20+</div>
+      <div class="stat-label">Countries</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">18+</div>
+      <div class="stat-label">Years Experience</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">11</div>
+      <div class="stat-label">Ventures Founded</div>
+    </div>
+  </div>
+
+  <div class="hero-badges">
+    <span class="badge highlight">Shark Tank Pakistan (Pre-Audition Judge)</span>
+    <span class="badge">Certified Prof Mentor (IMC)</span>
+    <span class="badge">ISO 42001</span>
+    <span class="badge">MasterChef Pakistan</span>
+    <span class="badge">AI Transformation Expert</span>
+  </div>
+</div>
+
+<div class="chat-wrapper">
+  <div class="messages" id="messages">
+    <div class="welcome-card">
+      <p>Assalamu Alaikum. I am <strong>Ask Sheikh</strong> — a digital mentor built on the knowledge and frameworks of <strong>BizTherapist</strong>.</p>
+      <p>Tell me about your startup idea, business challenge, or pitch — and I will give you the same direct, practical advice BizTherapist would give. No sugarcoating. No textbook answers.</p>
+      <p>What's on your mind?</p>
+    </div>
+  </div>
+  <div class="input-area">
+    <div class="suggestions" id="suggestions">
+      <button class="suggestion" onclick="useSuggestion(this)">I have a startup idea</button>
+      <button class="suggestion" onclick="useSuggestion(this)">Review my pitch</button>
+      <button class="suggestion" onclick="useSuggestion(this)">I'm losing money</button>
+      <button class="suggestion" onclick="useSuggestion(this)">Should I raise investment?</button>
+      <button class="suggestion" onclick="useSuggestion(this)">How do I find customers?</button>
+    </div>
+    <div class="input-row">
+      <textarea id="userInput" placeholder="Ask Sheikh anything about your startup..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Powered by <a href="https://biztherapist.biz" target="_blank">BizTherapist</a> &nbsp;·&nbsp; Sheikh Hammad Amjad &nbsp;·&nbsp; For deeper mentoring: <a href="https://biztherapist.biz" target="_blank">book a session</a>
+</footer>
+
+<script>
+const ENDPOINT = "https://asksheikh-production.up.railway.app/chat";
+
+const SYSTEM_PROMPT = `You are Ask Sheikh — the digital mentor powered by Sheikh Hammad Amjad, known as BizTherapist. Sheikh is a globally recognised startup mentor, business coach, and entrepreneur with 18+ years of experience across 20+ countries. ICF and IMC certified coach, AB 731 AI governance credential holder, ISO 42001 practitioner, founder of BizTherapist, who has personally mentored 1000+ founders. Shark Tank Pakistan pre-audition judge. MasterChef Pakistan Season 2 (HUM TV). Has worked with UN, ITC/WTO, UNDP, British Council, INSEAD, and GIZ.
+
+You evaluate all businesses through the ACE framework: Authenticity (is the founder the right person?), Commercial Viability (do the numbers make sense?), Execution (can they actually deliver?).
+
+CRITICAL — How You Respond:
+- Maximum 3 paragraphs for a first response — never more
+- NO headers, NO bullet points, NO numbered lists unless specifically asked
+- Talk like a mentor in a conversation — not like a consultant writing a report
+- Ask ONE sharp clarifying question before or after giving your view
+- Use "Dekho..." to open when being direct
+- End with ONE specific challenge or next step — not a list of five things
+- Sound like Sheikh — direct, warm, practical, conversational
+- Commercial viability is always your first concern — it is the absolute dealbreaker
+- Always ask about margins, unit economics, break even if not mentioned
+- Customer is not a risk taker — we are. Always remind founders of this.
+
+Your red flags: vague market sizing, zero validation, bandwagon ideas, no financials knowledge, defensive founders.
+Your green flags: customer conversations done, traction exists, founder has skin in the game, unfair advantage clear.
+
+If a founder needs deeper mentoring say: For a real one-on-one session with Sheikh himself, book at biztherapist.biz`;
+
+let API_KEY = "hidden";
+let history = [];
+let isLoading = false;
+
+
+
+function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 140) + "px"; }
+function handleKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function useSuggestion(btn) { const i = document.getElementById("userInput"); i.value = btn.textContent; autoResize(i); i.focus(); document.getElementById("suggestions").style.display = "none"; }
+
+function addMessage(role, content) {
+  const m = document.getElementById("messages");
+  const d = document.createElement("div");
+  d.className = "message " + (role === "user" ? "user" : "sheikh");
+  const av = document.createElement("div");
+  av.className = "avatar " + (role === "user" ? "user-av" : "sheikh");
+  av.textContent = role === "user" ? "You" : "AS";
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.innerHTML = content.replace(/\n/g, "<br>");
+  d.appendChild(av); d.appendChild(b); m.appendChild(d);
+  m.scrollTop = m.scrollHeight;
+}
+
+function showTyping() {
+  const m = document.getElementById("messages");
+  const d = document.createElement("div");
+  d.className = "typing"; d.id = "typing";
+  d.innerHTML = '<div class="avatar sheikh">AS</div><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  m.appendChild(d); m.scrollTop = m.scrollHeight;
+}
+
+function removeTyping() { const t = document.getElementById("typing"); if (t) t.remove(); }
+
+function showError(msg) {
+  const m = document.getElementById("messages");
+  const d = document.createElement("div");
+  d.className = "error-bubble"; d.textContent = msg;
+  m.appendChild(d); m.scrollTop = m.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById("userInput");
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+  document.getElementById("suggestions").style.display = "none";
+  isLoading = true;
+  document.getElementById("sendBtn").disabled = true;
+  input.value = ""; input.style.height = "auto";
+  addMessage("user", text);
+  history.push({ role: "user", content: text });
+  showTyping();
+
+  try {
+    const response = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: history })
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error("API error " + response.status + ": " + err);
+    }
+
+    const data = await response.json();
+    const reply = data.choices && data.choices[0] ? data.choices[0].message.content : "";
+    removeTyping();
+    if (reply) { history.push({ role: "assistant", content: reply }); addMessage("sheikh", reply); }
+    else showError("No response received. Please try again.");
+
+  } catch (err) {
+    removeTyping();
+    console.error(err);
+    showError("Error: " + err.message);
+  }
+
+  isLoading = false;
+  document.getElementById("sendBtn").disabled = false;
+  input.focus();
+}
+</script>
+</body>
+</html>
