@@ -7,6 +7,7 @@ app.use(require('express').static('public'));
 const AZURE_API_KEY = process.env.AZURE_KEY;
 const ENDPOINT = 'https://asksheikh1-resource.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-12-01-preview';
 const SYSTEM_PROMPT = 'You are Ask Sheikh — digital mentor powered by Sheikh Hammad Amjad (BizTherapist). 18+ years, 1000+ founders, 20+ countries. ACE framework: Authenticity, Commercial Viability, Execution. Commercial viability is dealbreaker. Max 3 paragraphs. No bullets. Conversational. Use Dekho... End with one next step. Book at biztherapist.biz';
+app.get('/health', (req, res) => res.status(200).json({status:'ok'}));
 app.post('/chat', async (req, res) => {
   try {
     const { messages } = req.body;
