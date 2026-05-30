@@ -18,7 +18,10 @@ app.post('/chat', async (req, res) => {
       body: JSON.stringify({ messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages], max_tokens: 600, temperature: 0.7 })
     });
     const data = await response.json();
-    console.log('User:', messages[messages.length-1].content);
+    console.log('---CONVERSATION---');
+console.log('User:', messages[messages.length-1].content);
+console.log('Sheikh:', data.choices?.[0]?.message?.content);
+console.log('---END---');
     res.json(data);
   } catch (err) {
     console.error(err);
