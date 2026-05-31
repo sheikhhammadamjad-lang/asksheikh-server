@@ -3,6 +3,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(cors({ origin: '*', methods: ['GET', 'POST'], allowedHeaders: ['Content-Type'] }));
 app.use(express.json());
 app.use(express.static('public'));
@@ -47,16 +48,8 @@ function authHeaders(token) {
 
 async function getAgentId(token) {
   if (cachedAgentId) return cachedAgentId;
-  const fetch = (await import('node-fetch')).default;
-  const res = await fetch(`${BASE}/assistants?${VER}&limit=100`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error(`List agents failed: ${await res.text()}`);
-  const data = await res.json();
-  console.log('Full agents response:', JSON.stringify(data).substring(0, 500));
-  console.log('Available agents:', JSON.stringify(data?.data?.map(a => ({ id: a.id, name: a.name }))));
-  const agent = data?.data?.find(a => a.name === 'AskSheikh') || data?.data?.[0];
-  if (!agent) throw new Error('AskSheikh agent not found');
-  cachedAgentId = agent.id;
-  console.log('Found agent ID:', cachedAgentId);
+  cachedAgentId = 'AskSheikh:16';
+  console.log('Using agent ID:', cachedAgentId);
   return cachedAgentId;
 }
 
