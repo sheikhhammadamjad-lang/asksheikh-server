@@ -85,7 +85,7 @@ app.post('/chat', async (req, res) => {
     const runRes = await fetch(`${BASE}/threads/${threadId}/runs?${VER}`, {
       method: 'POST',
       headers: authHeaders(token),
-      body: JSON.stringify({ assistant_id: agentId })
+      body: JSON.stringify({ assistant_id: agentId, tools: [{"type": "file_search"}] })
     });
     if (!runRes.ok) throw new Error(`Run failed: ${await runRes.text()}`);
     const run = await runRes.json();
