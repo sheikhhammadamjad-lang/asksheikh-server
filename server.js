@@ -14,29 +14,26 @@ const TENANT_ID = process.env.AZURE_TENANT_ID;
 const CLIENT_ID = process.env.AZURE_CLIENT_ID;
 const CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
 const BASE = 'https://asksheikh1-resource.services.ai.azure.com/api/projects/asksheikh';
-const AGENT_ID = 'AskSheikh';
 const VER = 'api-version=2025-05-01';
 
 let cachedToken = null;
 let tokenExpiry = 0;
+let cachedAgentId = null;
 
 async function getToken() {
   const fetch = (await import('node-fetch')).default;
   if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
-
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
     scope: 'https://ai.azure.com/.default'
   });
-
   const res = await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString()
   });
-
   if (!res.ok) throw new Error(`Token failed: ${await res.text()}`);
   const data = await res.json();
   cachedToken = data.access_token;
@@ -48,6 +45,20 @@ function authHeaders(token) {
   return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 }
 
+async function getAgentId(token) {
+  if (cachedAgentId) return cachedAgentId;
+  const fetch = (await import('node-fetch')).default;
+  const res = await fetch(`${BASE}/assistants?${VER}&limit=100`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error(`List agents failed: ${await res.text()}`);
+  const data = await res.json();
+  console.log('Available agents:', JSON.stringify(data?.data?.map(a => ({ id: a.id, name: a.name }))));
+  const agent = data?.data?.find(a => a.name === 'AskSheikh');
+  if (!agent) throw new Error('AskSheikh agent not found');
+  cachedAgentId = agent.id;
+  console.log('Found agent ID:', cachedAgentId);
+  return cachedAgentId;
+}
+
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.post('/chat', async (req, res) => {
@@ -56,6 +67,7 @@ app.post('/chat', async (req, res) => {
     const userMessage = messages[messages.length - 1].content;
     const fetch = (await import('node-fetch')).default;
     const token = await getToken();
+    const agentId = await getAgentId(token);
 
     // Step 1: Create thread
     const threadRes = await fetch(`${BASE}/threads?${VER}`, {
@@ -79,7 +91,7 @@ app.post('/chat', async (req, res) => {
     const runRes = await fetch(`${BASE}/threads/${threadId}/runs?${VER}`, {
       method: 'POST',
       headers: authHeaders(token),
-      body: JSON.stringify({ assistant_id: AGENT_ID })
+      body: JSON.stringify({ assistant_id: agentId })
     });
     if (!runRes.ok) throw new Error(`Run failed: ${await runRes.text()}`);
     const run = await runRes.json();
@@ -105,23 +117,20 @@ app.post('/chat', async (req, res) => {
     const assistantMsg = msgsData.data.find(m => m.role === 'assistant');
 
     let reply = '';
-    if (assistantMsg && assistantMsg.content) {
+    if (assistantMsg?.content) {
       for (const c of assistantMsg.content) {
         if (c.type === 'text') reply += c.text?.value || '';
       }
     }
 
-    // Remove citation markers like 【4:0†source】
+    // Remove citation markers
     reply = reply.replace(/【[^】]*】/g, '').trim();
 
     console.log('User:', userMessage);
     console.log('Sheikh:', reply.substring(0, 150) + '...');
 
     res.json({
-      choices: [{
-        message: { content: reply, role: 'assistant' },
-        finish_reason: 'stop'
-      }]
+      choices: [{ message: { content: reply, role: 'assistant' }, finish_reason: 'stop' }]
     });
 
   } catch (err) {
