@@ -14,8 +14,8 @@ app.use('/chat', limiter);
 const TENANT_ID = process.env.AZURE_TENANT_ID;
 const CLIENT_ID = process.env.AZURE_CLIENT_ID;
 const CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
-const BASE = 'https://asksheikh1-resource.services.ai.azure.com/api/projects/asksheikh';
-const VER = 'api-version=2025-05-01';
+const BASE = 'https://asksheikh1-resource.openai.azure.com/openai';
+const VER = 'api-version=2024-05-01-preview';
 
 let cachedToken = null;
 let tokenExpiry = 0;
