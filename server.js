@@ -28,7 +28,7 @@ async function getToken() {
     grant_type: 'client_credentials',
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
-    scope: 'https://ml.azure.com/.default'
+    scope: 'https://ai.azure.com/.default'
   });
 
   const res = await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`, {
