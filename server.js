@@ -51,8 +51,9 @@ async function getAgentId(token) {
   const res = await fetch(`${BASE}/assistants?${VER}&limit=100`, { headers: authHeaders(token) });
   if (!res.ok) throw new Error(`List agents failed: ${await res.text()}`);
   const data = await res.json();
+  console.log('Full agents response:', JSON.stringify(data).substring(0, 500));
   console.log('Available agents:', JSON.stringify(data?.data?.map(a => ({ id: a.id, name: a.name }))));
-  const agent = data?.data?.find(a => a.name === 'AskSheikh');
+  const agent = data?.data?.find(a => a.name === 'AskSheikh') || data?.data?.[0];
   if (!agent) throw new Error('AskSheikh agent not found');
   cachedAgentId = agent.id;
   console.log('Found agent ID:', cachedAgentId);
