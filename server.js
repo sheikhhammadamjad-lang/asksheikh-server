@@ -25,9 +25,13 @@ const FOUNDRY_BASE = process.env.AZURE_FOUNDRY_BASE || 'https://asksheikh1-resou
 const AGENT_NAME = process.env.AZURE_FOUNDRY_AGENT_NAME || 'AskSheikh';
 const AGENT_VERSION = process.env.AZURE_FOUNDRY_AGENT_VERSION || '16';
 const LOG_DIR = process.env.LOG_DIR || path.join(__dirname, 'logs');
+const STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const CONVERSATIONS_TABLE = process.env.AZURE_CONVERSATIONS_TABLE || 'AskSheikhConversations';
+const FEEDBACK_TABLE = process.env.AZURE_FEEDBACK_TABLE || 'AskSheikhFeedback';
 
 let cachedToken = null;
 let tokenExpiry = 0;
+let storageConfig = null;
 
 async function getToken() {
   const fetch = (await import('node-fetch')).default;
@@ -63,6 +67,111 @@ async function appendJsonLog(fileName, entry) {
     path.join(LOG_DIR, fileName),
     `${JSON.stringify({ timestamp: new Date().toISOString(), ...entry })}\n`
   );
+}
+
+function getStorageConfig() {
+  if (storageConfig !== null) return storageConfig;
+  if (!STORAGE_CONNECTION_STRING) {
+    storageConfig = false;
+    return storageConfig;
+  }
+
+  const parts = Object.fromEntries(
+    STORAGE_CONNECTION_STRING.split(';')
+      .filter(Boolean)
+      .map(part => {
+        const index = part.indexOf('=');
+        return [part.slice(0, index), part.slice(index + 1)];
+      })
+  );
+
+  const accountName = parts.AccountName;
+  const accountKey = parts.AccountKey;
+  const endpoint = (parts.TableEndpoint || `https://${accountName}.table.core.windows.net`).replace(/\/$/, '');
+  storageConfig = accountName && accountKey ? { accountName, accountKey, endpoint } : false;
+  return storageConfig;
+}
+
+function tableStorageHeaders(method, tableName, body) {
+  const config = getStorageConfig();
+  const date = new Date().toUTCString();
+  const contentType = 'application/json';
+  const resource = `/${config.accountName}/${tableName}`;
+  const stringToSign = [method, '', contentType, date, resource].join('\n');
+  const signature = crypto
+    .createHmac('sha256', Buffer.from(config.accountKey, 'base64'))
+    .update(stringToSign, 'utf8')
+    .digest('base64');
+
+  return {
+    Authorization: `SharedKey ${config.accountName}:${signature}`,
+    'Content-Type': contentType,
+    Accept: 'application/json;odata=nometadata',
+    Date: date,
+    'x-ms-version': '2019-02-02',
+    'Content-Length': Buffer.byteLength(body)
+  };
+}
+
+async function insertTableEntity(tableName, entity) {
+  const config = getStorageConfig();
+  if (!config) return false;
+
+  const fetch = (await import('node-fetch')).default;
+  const body = JSON.stringify(entity);
+  const res = await fetch(`${config.endpoint}/${tableName}`, {
+    method: 'POST',
+    headers: tableStorageHeaders('POST', tableName, body),
+    body
+  });
+
+  if (!res.ok) {
+    throw new Error(`Azure Table insert failed: ${res.status} ${await res.text()}`);
+  }
+
+  return true;
+}
+
+async function logConversation(entry) {
+  try {
+    const createdAt = new Date().toISOString();
+    await insertTableEntity(CONVERSATIONS_TABLE, {
+      PartitionKey: createdAt.slice(0, 10),
+      RowKey: entry.conversationId,
+      createdAt,
+      userMessage: entry.userMessage,
+      assistantReply: entry.assistantReply,
+      messagesJson: JSON.stringify(entry.messages || []),
+      mode: entry.mode,
+      agentName: entry.agentName,
+      agentVersion: entry.agentVersion,
+      responseId: entry.responseId
+    });
+  } catch (err) {
+    console.error('Azure conversation log failed:', err.message);
+  }
+
+  await appendJsonLog('conversations.jsonl', entry);
+}
+
+async function logFeedback(entry) {
+  try {
+    const createdAt = new Date().toISOString();
+    await insertTableEntity(FEEDBACK_TABLE, {
+      PartitionKey: createdAt.slice(0, 10),
+      RowKey: crypto.randomUUID(),
+      createdAt,
+      conversationId: entry.conversationId,
+      rating: entry.rating,
+      feedback: entry.feedback || '',
+      userAgent: entry.userAgent || '',
+      ip: entry.ip || ''
+    });
+  } catch (err) {
+    console.error('Azure feedback log failed:', err.message);
+  }
+
+  await appendJsonLog('feedback.jsonl', entry);
 }
 
 function cleanReply(text) {
@@ -166,7 +275,7 @@ app.post('/chat', async (req, res) => {
     if (!result.reply) throw new Error('Foundry agent returned an empty response');
 
     const conversationId = crypto.randomUUID();
-    await appendJsonLog('conversations.jsonl', {
+    await logConversation({
       conversationId,
       userMessage,
       messages,
@@ -203,7 +312,7 @@ app.post('/feedback', async (req, res) => {
       return res.status(400).json({ error: 'conversationId and rating are required' });
     }
 
-    await appendJsonLog('feedback.jsonl', {
+    await logFeedback({
       conversationId,
       rating,
       feedback: feedback || '',
