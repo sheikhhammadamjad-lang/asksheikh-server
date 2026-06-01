@@ -68,24 +68,19 @@ function cleanReply(text) {
   return (text || '').replace(/【[^】]*】/g, '').trim();
 }
 
-function extractAssistantText(assistantMsg) {
-  let reply = '';
-  if (assistantMsg?.content) {
-    for (const item of assistantMsg.content) {
-      if (item.type === 'text') reply += item.text?.value || item.text || '';
-    }
-  }
-  return cleanReply(reply);
-}
-
 function extractResponseText(response) {
   if (response.output_text) return cleanReply(response.output_text);
+  if (response.choices?.[0]?.message?.content) {
+    return cleanReply(response.choices[0].message.content);
+  }
 
   let reply = '';
   for (const item of response.output || []) {
     for (const content of item.content || []) {
       if (content.type === 'output_text' || content.type === 'text') {
-        reply += content.text || content.value || '';
+        if (typeof content.text === 'string') reply += content.text;
+        else if (content.text?.value) reply += content.text.value;
+        else if (typeof content.value === 'string') reply += content.value;
       }
     }
   }
@@ -124,9 +119,14 @@ async function callFoundryAgent(messages) {
   });
   if (!responseRes.ok) throw new Error(`Foundry response failed: ${await responseRes.text()}`);
   const data = await responseRes.json();
+  const reply = extractResponseText(data);
+  if (!reply) {
+    console.error('Empty Foundry response:', JSON.stringify(data).slice(0, 2000));
+    throw new Error('Foundry agent returned an empty response');
+  }
 
   return {
-    reply: extractResponseText(data),
+    reply,
     responseId: data.id
   };
 }
