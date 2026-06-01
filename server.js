@@ -21,8 +21,8 @@ const TENANT_ID = process.env.AZURE_TENANT_ID;
 const CLIENT_ID = process.env.AZURE_CLIENT_ID;
 const CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
 const FOUNDRY_BASE = process.env.AZURE_FOUNDRY_BASE || 'https://asksheikh1-resource.services.ai.azure.com/api/projects/asksheikh';
-const FOUNDRY_API_VERSION = process.env.AZURE_FOUNDRY_API_VERSION || '2025-05-01';
-const AGENT_ID = process.env.AZURE_FOUNDRY_AGENT_ID || '11cd40fc-b1b3-457f-a453-0cc4922e0459';
+const AGENT_NAME = process.env.AZURE_FOUNDRY_AGENT_NAME || 'AskSheikh';
+const AGENT_VERSION = process.env.AZURE_FOUNDRY_AGENT_VERSION || '16';
 const LOG_DIR = path.join(__dirname, 'logs');
 
 let cachedToken = null;
@@ -78,6 +78,21 @@ function extractAssistantText(assistantMsg) {
   return cleanReply(reply);
 }
 
+function extractResponseText(response) {
+  if (response.output_text) return cleanReply(response.output_text);
+
+  let reply = '';
+  for (const item of response.output || []) {
+    for (const content of item.content || []) {
+      if (content.type === 'output_text' || content.type === 'text') {
+        reply += content.text || content.value || '';
+      }
+    }
+  }
+
+  return cleanReply(reply);
+}
+
 function conversationPrompt(messages) {
   const recent = messages.slice(-10);
   const transcript = recent.map(message => {
@@ -95,60 +110,24 @@ function conversationPrompt(messages) {
 async function callFoundryAgent(messages) {
   const fetch = (await import('node-fetch')).default;
   const token = await getToken();
-  const qs = `api-version=${FOUNDRY_API_VERSION}`;
-
-  const threadRes = await fetch(`${FOUNDRY_BASE}/threads?${qs}`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: '{}'
-  });
-  if (!threadRes.ok) throw new Error(`Thread failed: ${await threadRes.text()}`);
-  const thread = await threadRes.json();
-
-  const msgRes = await fetch(`${FOUNDRY_BASE}/threads/${thread.id}/messages?${qs}`, {
+  const responseRes = await fetch(`${FOUNDRY_BASE}/openai/v1/responses`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({
-      role: 'user',
-      content: conversationPrompt(messages)
+      input: conversationPrompt(messages),
+      agent_reference: {
+        name: AGENT_NAME,
+        type: 'agent_reference',
+        version: AGENT_VERSION
+      }
     })
   });
-  if (!msgRes.ok) throw new Error(`Message failed: ${await msgRes.text()}`);
-
-  const runRes = await fetch(`${FOUNDRY_BASE}/threads/${thread.id}/runs?${qs}`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify({ assistant_id: AGENT_ID })
-  });
-  if (!runRes.ok) throw new Error(`Run failed: ${await runRes.text()}`);
-  const run = await runRes.json();
-
-  let status = run.status || 'queued';
-  let attempts = 0;
-  while (!['completed', 'failed', 'cancelled', 'expired'].includes(status) && attempts < 60) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const statusRes = await fetch(`${FOUNDRY_BASE}/threads/${thread.id}/runs/${run.id}?${qs}`, {
-      headers: authHeaders(token)
-    });
-    if (!statusRes.ok) throw new Error(`Run status failed: ${await statusRes.text()}`);
-    const statusData = await statusRes.json();
-    status = statusData.status;
-    attempts++;
-  }
-
-  if (status !== 'completed') throw new Error(`Run did not complete: ${status}`);
-
-  const msgsRes = await fetch(`${FOUNDRY_BASE}/threads/${thread.id}/messages?${qs}&order=desc&limit=10`, {
-    headers: authHeaders(token)
-  });
-  if (!msgsRes.ok) throw new Error(`Get messages failed: ${await msgsRes.text()}`);
-  const msgsData = await msgsRes.json();
-  const assistantMsg = msgsData.data.find(message => message.role === 'assistant');
+  if (!responseRes.ok) throw new Error(`Foundry response failed: ${await responseRes.text()}`);
+  const data = await responseRes.json();
 
   return {
-    reply: extractAssistantText(assistantMsg),
-    threadId: thread.id,
-    runId: run.id
+    reply: extractResponseText(data),
+    responseId: data.id
   };
 }
 
@@ -168,9 +147,9 @@ app.post('/chat', async (req, res) => {
       userMessage,
       mode: 'foundry_agent_proxy',
       assistantReply: result.reply,
-      agentId: AGENT_ID,
-      threadId: result.threadId,
-      runId: result.runId
+      agentName: AGENT_NAME,
+      agentVersion: AGENT_VERSION,
+      responseId: result.responseId
     });
 
     console.log('User:', userMessage);
@@ -180,9 +159,9 @@ app.post('/chat', async (req, res) => {
       choices: [{ message: { content: result.reply, role: 'assistant' }, finish_reason: 'stop' }],
       metadata: {
         mode: 'foundry_agent_proxy',
-        agent_id: AGENT_ID,
-        thread_id: result.threadId,
-        run_id: result.runId
+        agent_name: AGENT_NAME,
+        agent_version: AGENT_VERSION,
+        response_id: result.responseId
       }
     });
   } catch (err) {
