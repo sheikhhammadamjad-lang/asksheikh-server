@@ -88,18 +88,14 @@ function extractResponseText(response) {
   return cleanReply(reply);
 }
 
-function conversationPrompt(messages) {
-  const recent = messages.slice(-10);
-  const transcript = recent.map(message => {
-    const role = message.role === 'assistant' ? 'AskSheikh' : 'User';
-    return `${role}: ${message.content}`;
-  }).join('\n\n');
-
-  return [
-    'Continue this AskSheikh conversation. Use the agent instructions, knowledge base, and web search tools configured in Azure Foundry.',
-    '',
-    transcript
-  ].join('\n');
+function conversationInput(messages) {
+  return messages
+    .slice(-10)
+    .filter(message => message && message.content)
+    .map(message => ({
+      role: message.role === 'assistant' ? 'assistant' : 'user',
+      content: String(message.content)
+    }));
 }
 
 async function callFoundryAgent(messages) {
@@ -119,7 +115,7 @@ async function callFoundryAgentOnce(messages) {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      input: conversationPrompt(messages),
+      input: conversationInput(messages),
       agent_reference: {
         name: AGENT_NAME,
         type: 'agent_reference',
