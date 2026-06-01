@@ -103,6 +103,15 @@ function conversationPrompt(messages) {
 }
 
 async function callFoundryAgent(messages) {
+  const result = await callFoundryAgentOnce(messages);
+  if (result.reply) return result;
+
+  const lastMessage = messages[messages.length - 1];
+  console.error('Empty Foundry response. Retrying with latest message only.');
+  return callFoundryAgentOnce([lastMessage]);
+}
+
+async function callFoundryAgentOnce(messages) {
   const fetch = (await import('node-fetch')).default;
   const token = await getToken();
   const headers = authHeaders(token);
@@ -138,10 +147,7 @@ async function callFoundryAgent(messages) {
   }
 
   const reply = extractResponseText(data);
-  if (!reply) {
-    console.error('Empty Foundry response:', JSON.stringify(data).slice(0, 2000));
-    throw new Error('Foundry agent returned an empty response');
-  }
+  if (!reply) console.error('Empty Foundry response:', JSON.stringify(data).slice(0, 2000));
 
   return {
     reply,
@@ -159,9 +165,10 @@ app.post('/chat', async (req, res) => {
     }
 
     const userMessage = messages[messages.length - 1].content;
-    const result = await callFoundryAgent(messages);
+  const result = await callFoundryAgent(messages);
+  if (!result.reply) throw new Error('Foundry agent returned an empty response');
 
-    await appendJsonLog('conversations.jsonl', {
+  await appendJsonLog('conversations.jsonl', {
       userMessage,
       mode: 'foundry_agent_proxy',
       assistantReply: result.reply,
