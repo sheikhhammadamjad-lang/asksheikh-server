@@ -421,6 +421,10 @@
   footer a { color: var(--orange); text-decoration: none; }
 
   .error-bubble { background: #fff5f5; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 10px; padding: 0.8rem 1rem; font-size: 0.84rem; margin-left: 44px; }
+  .feedback-row { display: flex; gap: 0.4rem; margin: 0.45rem 0 0 3.1rem; align-items: center; }
+  .feedback-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--white); color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; }
+  .feedback-btn:hover, .feedback-btn.selected { border-color: var(--orange); color: var(--orange); }
+  .feedback-note { font-size: 0.76rem; color: var(--muted); }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
@@ -544,6 +548,7 @@ If a founder needs deeper mentoring say: For a real one-on-one session with Shei
 let API_KEY = "hidden";
 let history = [];
 let isLoading = false;
+let lastConversationId = null;
 
 
 
@@ -563,6 +568,44 @@ function addMessage(role, content) {
   b.innerHTML = content.replace(/\n/g, "<br>");
   d.appendChild(av); d.appendChild(b); m.appendChild(d);
   m.scrollTop = m.scrollHeight;
+}
+
+function addFeedback(conversationId) {
+  const m = document.getElementById("messages");
+  const row = document.createElement("div");
+  row.className = "feedback-row";
+  row.dataset.conversationId = conversationId;
+  row.innerHTML = `
+    <button class="feedback-btn" title="Good answer" onclick="sendFeedback(this, 'up')">👍</button>
+    <button class="feedback-btn" title="Bad answer" onclick="sendFeedback(this, 'down')">👎</button>
+    <span class="feedback-note">Rate this answer</span>
+  `;
+  m.appendChild(row);
+  m.scrollTop = m.scrollHeight;
+}
+
+async function sendFeedback(btn, rating) {
+  const row = btn.closest(".feedback-row");
+  const conversationId = row && row.dataset.conversationId;
+  if (!conversationId) return;
+
+  row.querySelectorAll(".feedback-btn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  const note = row.querySelector(".feedback-note");
+  note.textContent = "Saving...";
+
+  try {
+    const response = await fetch("/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId, rating })
+    });
+    if (!response.ok) throw new Error(await response.text());
+    note.textContent = "Saved";
+  } catch (err) {
+    console.error(err);
+    note.textContent = "Could not save";
+  }
 }
 
 function showTyping() {
@@ -608,8 +651,13 @@ async function sendMessage() {
 
     const data = await response.json();
     const reply = data.choices && data.choices[0] ? data.choices[0].message.content : "";
+    lastConversationId = data.metadata ? data.metadata.conversation_id : null;
     removeTyping();
-    if (reply) { history.push({ role: "assistant", content: reply }); addMessage("sheikh", reply); }
+    if (reply) {
+      history.push({ role: "assistant", content: reply });
+      addMessage("sheikh", reply);
+      if (lastConversationId) addFeedback(lastConversationId);
+    }
     else showError("No response received. Please try again.");
 
   } catch (err) {

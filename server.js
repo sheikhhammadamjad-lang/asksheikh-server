@@ -3,6 +3,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs/promises');
 const path = require('path');
+const crypto = require('crypto');
 const app = express();
 
 app.set('trust proxy', 1);
@@ -23,7 +24,7 @@ const CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
 const FOUNDRY_BASE = process.env.AZURE_FOUNDRY_BASE || 'https://asksheikh1-resource.services.ai.azure.com/api/projects/asksheikh';
 const AGENT_NAME = process.env.AZURE_FOUNDRY_AGENT_NAME || 'AskSheikh';
 const AGENT_VERSION = process.env.AZURE_FOUNDRY_AGENT_VERSION || '16';
-const LOG_DIR = path.join(__dirname, 'logs');
+const LOG_DIR = process.env.LOG_DIR || path.join(__dirname, 'logs');
 
 let cachedToken = null;
 let tokenExpiry = 0;
@@ -161,11 +162,14 @@ app.post('/chat', async (req, res) => {
     }
 
     const userMessage = messages[messages.length - 1].content;
-  const result = await callFoundryAgent(messages);
-  if (!result.reply) throw new Error('Foundry agent returned an empty response');
+    const result = await callFoundryAgent(messages);
+    if (!result.reply) throw new Error('Foundry agent returned an empty response');
 
-  await appendJsonLog('conversations.jsonl', {
+    const conversationId = crypto.randomUUID();
+    await appendJsonLog('conversations.jsonl', {
+      conversationId,
       userMessage,
+      messages,
       mode: 'foundry_agent_proxy',
       assistantReply: result.reply,
       agentName: AGENT_NAME,
@@ -179,12 +183,35 @@ app.post('/chat', async (req, res) => {
     res.json({
       choices: [{ message: { content: result.reply, role: 'assistant' }, finish_reason: 'stop' }],
       metadata: {
+        conversation_id: conversationId,
         mode: 'foundry_agent_proxy',
         agent_name: AGENT_NAME,
         agent_version: AGENT_VERSION,
         response_id: result.responseId
       }
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/feedback', async (req, res) => {
+  try {
+    const { conversationId, rating, feedback } = req.body;
+    if (!conversationId || !['up', 'down'].includes(rating)) {
+      return res.status(400).json({ error: 'conversationId and rating are required' });
+    }
+
+    await appendJsonLog('feedback.jsonl', {
+      conversationId,
+      rating,
+      feedback: feedback || '',
+      userAgent: req.get('user-agent') || '',
+      ip: req.ip
+    });
+
+    res.status(200).json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
