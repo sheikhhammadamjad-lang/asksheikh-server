@@ -203,6 +203,38 @@ function userApprovedExternal(messages, allowExternal) {
     /^(yes|yeah|yep|ok|okay|sure|approved|go ahead|use external|use general)/i.test(last.trim());
 }
 
+function isGenericStartupOpener(message) {
+  const text = String(message || '').trim().toLowerCase();
+  return [
+    'i have a startup idea',
+    'i have an idea',
+    'i have a business idea',
+    'i want to start a startup',
+    'i want to start a business',
+    'startup idea',
+    'business idea'
+  ].includes(text);
+}
+
+function startupIdeaFollowUp() {
+  return [
+    "Good. Don't pitch it like a dream yet. Give me the raw version.",
+    "",
+    "Assess:",
+    "What problem are you solving, and who feels that pain badly enough to pay or change behavior?",
+    "",
+    "Clarify:",
+    "Send me four things:",
+    "1. The customer",
+    "2. The problem",
+    "3. Your solution",
+    "4. How you think it will make money",
+    "",
+    "Execute:",
+    "Write it in 3-5 lines. Then I'll help you test if it is a real opportunity or just an interesting idea."
+  ].join('\n');
+}
+
 async function askGpt(messages) {
   const fetch = (await import('node-fetch')).default;
   const url = `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${encodeURIComponent(AZURE_OPENAI_DEPLOYMENT)}/chat/completions?api-version=${AZURE_OPENAI_API_VERSION}`;
@@ -274,6 +306,25 @@ app.post('/chat', async (req, res) => {
 
     const userMessage = messages[messages.length - 1].content;
     const externalApproved = userApprovedExternal(messages, allowExternal);
+
+    if (isGenericStartupOpener(userMessage)) {
+      const reply = startupIdeaFollowUp();
+      await appendJsonLog('conversations.jsonl', {
+        userMessage,
+        mode: 'startup_opener_followup',
+        assistantReply: reply,
+        sources: []
+      });
+
+      return res.json({
+        choices: [{ message: { content: reply, role: 'assistant' }, finish_reason: 'stop' }],
+        metadata: {
+          mode: 'startup_opener_followup',
+          kb_first: false,
+          external_sources_used: false
+        }
+      });
+    }
 
     if (externalApproved) {
       const reply = await answerFromGeneralKnowledge(userMessage);
