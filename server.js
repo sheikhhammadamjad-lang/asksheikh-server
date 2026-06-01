@@ -146,7 +146,7 @@ async function searchSheikhKb(query) {
   const body = {
     search: query,
     top: SEARCH_TOP_K,
-    includeTotalCount: true
+    count: true
   };
 
   if (AZURE_SEARCH_SEMANTIC_CONFIG) {
