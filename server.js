@@ -105,9 +105,10 @@ function conversationPrompt(messages) {
 async function callFoundryAgent(messages) {
   const fetch = (await import('node-fetch')).default;
   const token = await getToken();
+  const headers = authHeaders(token);
   const responseRes = await fetch(`${FOUNDRY_BASE}/openai/v1/responses`, {
     method: 'POST',
-    headers: authHeaders(token),
+    headers,
     body: JSON.stringify({
       input: conversationPrompt(messages),
       agent_reference: {
@@ -118,7 +119,24 @@ async function callFoundryAgent(messages) {
     })
   });
   if (!responseRes.ok) throw new Error(`Foundry response failed: ${await responseRes.text()}`);
-  const data = await responseRes.json();
+  let data = await responseRes.json();
+
+  let attempts = 0;
+  while (['queued', 'in_progress', 'requires_action'].includes(data.status) && attempts < 60) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const pollRes = await fetch(`${FOUNDRY_BASE}/openai/v1/responses/${data.id}`, {
+      headers
+    });
+    if (!pollRes.ok) throw new Error(`Foundry response poll failed: ${await pollRes.text()}`);
+    data = await pollRes.json();
+    attempts++;
+  }
+
+  if (data.status && data.status !== 'completed') {
+    console.error('Incomplete Foundry response:', JSON.stringify(data).slice(0, 2000));
+    throw new Error(`Foundry response did not complete: ${data.status}`);
+  }
+
   const reply = extractResponseText(data);
   if (!reply) {
     console.error('Empty Foundry response:', JSON.stringify(data).slice(0, 2000));
