@@ -28,6 +28,7 @@ const LOG_DIR = process.env.LOG_DIR || path.join(__dirname, 'logs');
 const STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const CONVERSATIONS_TABLE = process.env.AZURE_CONVERSATIONS_TABLE || 'AskSheikhConversations';
 const FEEDBACK_TABLE = process.env.AZURE_FEEDBACK_TABLE || 'AskSheikhFeedback';
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
 
 let cachedToken = null;
 let tokenExpiry = 0;
@@ -92,10 +93,10 @@ function getStorageConfig() {
   return storageConfig;
 }
 
-function tableStorageHeaders(method, tableName, body) {
+function tableStorageHeaders(method, tableName, body = '') {
   const config = getStorageConfig();
   const date = new Date().toUTCString();
-  const contentType = 'application/json';
+  const contentType = method === 'GET' ? '' : 'application/json';
   const resource = `/${config.accountName}/${tableName}`;
   const stringToSign = [method, '', contentType, date, resource].join('\n');
   const signature = crypto
@@ -103,14 +104,16 @@ function tableStorageHeaders(method, tableName, body) {
     .update(stringToSign, 'utf8')
     .digest('base64');
 
-  return {
+  const headers = {
     Authorization: `SharedKey ${config.accountName}:${signature}`,
-    'Content-Type': contentType,
     Accept: 'application/json;odata=nometadata',
     Date: date,
-    'x-ms-version': '2019-02-02',
-    'Content-Length': Buffer.byteLength(body)
+    'x-ms-version': '2019-02-02'
   };
+
+  if (contentType) headers['Content-Type'] = contentType;
+  if (body) headers['Content-Length'] = Buffer.byteLength(body);
+  return headers;
 }
 
 async function insertTableEntity(tableName, entity) {
@@ -130,6 +133,97 @@ async function insertTableEntity(tableName, entity) {
   }
 
   return true;
+}
+
+async function queryTableEntities(tableName, options = {}) {
+  const config = getStorageConfig();
+  if (!config) return [];
+
+  const fetch = (await import('node-fetch')).default;
+  const params = new URLSearchParams();
+  params.set('$top', String(options.top || 500));
+
+  const res = await fetch(`${config.endpoint}/${tableName}()?${params.toString()}`, {
+    method: 'GET',
+    headers: tableStorageHeaders('GET', tableName)
+  });
+
+  if (!res.ok) {
+    throw new Error(`Azure Table query failed: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return Array.isArray(data.value) ? data.value : [];
+}
+
+function karachiDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Karachi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
+}
+
+function latestFeedbackByConversation(feedbackRows) {
+  const map = new Map();
+  for (const row of feedbackRows) {
+    if (!row.conversationId) continue;
+    const existing = map.get(row.conversationId);
+    if (!existing || new Date(row.createdAt) > new Date(existing.createdAt)) {
+      map.set(row.conversationId, row);
+    }
+  }
+  return map;
+}
+
+function dashboardSummary(conversationRows, feedbackRows) {
+  const today = karachiDateKey();
+  const sortedConversations = [...conversationRows].sort((a, b) => {
+    return new Date(b.createdAt || b.Timestamp || 0) - new Date(a.createdAt || a.Timestamp || 0);
+  });
+  const feedbackMap = latestFeedbackByConversation(feedbackRows);
+  const ratedConversations = sortedConversations.filter(row => feedbackMap.has(row.RowKey));
+  const thumbsUp = ratedConversations.filter(row => feedbackMap.get(row.RowKey).rating === 'up').length;
+  const thumbsDown = ratedConversations.filter(row => feedbackMap.get(row.RowKey).rating === 'down').length;
+  const todaysQuestions = sortedConversations.filter(row => {
+    return row.createdAt && karachiDateKey(row.createdAt) === today;
+  }).length;
+  const positiveRate = ratedConversations.length
+    ? Math.round((thumbsUp / ratedConversations.length) * 100)
+    : 0;
+
+  const formatRow = row => {
+    const feedback = feedbackMap.get(row.RowKey);
+    return {
+      id: row.RowKey,
+      createdAt: row.createdAt || row.Timestamp || '',
+      question: row.userMessage || '',
+      answer: row.assistantReply || '',
+      rating: feedback?.rating || '',
+      feedback: feedback?.feedback || '',
+      mode: row.mode || '',
+      agentVersion: row.agentVersion || ''
+    };
+  };
+
+  return {
+    generatedAt: new Date().toISOString(),
+    stats: {
+      totalQuestions: sortedConversations.length,
+      todaysQuestions,
+      ratedAnswers: ratedConversations.length,
+      thumbsUp,
+      thumbsDown,
+      positiveRate
+    },
+    recent: sortedConversations.slice(0, 100).map(formatRow),
+    needsReview: sortedConversations
+      .filter(row => feedbackMap.get(row.RowKey)?.rating === 'down')
+      .slice(0, 50)
+      .map(formatRow)
+  };
 }
 
 async function logConversation(entry) {
@@ -262,6 +356,31 @@ async function callFoundryAgentOnce(messages) {
 }
 
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+
+function requireDashboardPassword(req, res, next) {
+  if (!DASHBOARD_PASSWORD) {
+    return res.status(503).json({ error: 'Dashboard password is not configured' });
+  }
+
+  const suppliedPassword = req.get('x-dashboard-password') || req.query.password;
+  if (suppliedPassword !== DASHBOARD_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  next();
+}
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/dashboard-data', requireDashboardPassword, async (req, res) => {
+  const [conversations, feedback] = await Promise.all([
+    queryTableEntities(CONVERSATIONS_TABLE, { top: 500 }),
+    queryTableEntities(FEEDBACK_TABLE, { top: 500 })
+  ]);
+  res.json(dashboardSummary(conversations, feedback));
+});
 
 app.post('/chat', async (req, res) => {
   try {

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ask Sheikh Dashboard</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #64748b;
+      --line: #d8e0ec;
+      --panel: #ffffff;
+      --page: #f3f6fa;
+      --navy: #0f1d36;
+      --orange: #f15a24;
+      --green: #168a55;
+      --red: #c13a3a;
+      --shadow: 0 12px 30px rgba(15, 29, 54, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--page);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--navy);
+      color: #ffffff;
+      border-bottom: 4px solid var(--orange);
+    }
+
+    .header-inner {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      border: 2px solid var(--orange);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 14px;
+      flex: 0 0 auto;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(20px, 4vw, 28px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: #b9c2d2;
+      display: block;
+      font-size: 12px;
+      margin-top: 5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 800;
+      background: var(--orange);
+      color: #ffffff;
+      min-height: 42px;
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 22px auto 40px;
+    }
+
+    .login,
+    .section,
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+    }
+
+    .login {
+      max-width: 520px;
+      margin: 52px auto;
+      padding: 22px;
+    }
+
+    .login h2,
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .login p,
+    .section p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .password-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 44px;
+      padding: 10px 12px;
+      color: var(--ink);
+      background: #ffffff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .status {
+      margin-top: 12px;
+      color: var(--red);
+      font-weight: 700;
+      min-height: 22px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .toolbar h2 {
+      margin: 0;
+      font-size: clamp(22px, 4vw, 32px);
+      letter-spacing: 0;
+    }
+
+    .toolbar p {
+      margin: 5px 0 0;
+      color: var(--muted);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      padding: 16px;
+      min-height: 106px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 10px;
+      font-size: clamp(26px, 5vw, 38px);
+      line-height: 1;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .section {
+      overflow: hidden;
+    }
+
+    .section-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-head small {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .list {
+      display: grid;
+      gap: 0;
+    }
+
+    .item {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .item:last-child {
+      border-bottom: 0;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      line-height: 1;
+      color: #ffffff;
+      background: #8892a5;
+      white-space: nowrap;
+    }
+
+    .badge.up {
+      background: var(--green);
+    }
+
+    .badge.down {
+      background: var(--red);
+    }
+
+    .question {
+      margin: 0 0 10px;
+      font-weight: 900;
+      line-height: 1.42;
+    }
+
+    .answer,
+    .feedback {
+      margin: 0;
+      color: #334155;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .answer {
+      display: -webkit-box;
+      -webkit-line-clamp: 8;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .feedback {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      color: #7c2d12;
+    }
+
+    .empty {
+      padding: 24px 16px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .header-inner {
+        min-height: 70px;
+      }
+
+      .brand span {
+        display: none;
+      }
+
+      .header-actions {
+        gap: 6px;
+      }
+
+      button {
+        padding: 9px 11px;
+      }
+
+      .password-row,
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="mark">AS</div>
+        <div>
+          <h1>Ask Sheikh</h1>
+          <span>Pilot dashboard</span>
+        </div>
+      </div>
+      <div class="header-actions hidden" id="dashboardActions">
+        <button class="secondary" type="button" id="refreshBtn">Refresh</button>
+        <button type="button" id="logoutBtn">Lock</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="login" id="loginPanel">
+      <h2>Dashboard Access</h2>
+      <p>Enter the dashboard password to view pilot questions, ratings, and feedback.</p>
+      <form class="password-row" id="loginForm">
+        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Dashboard password" />
+        <button type="submit">Open</button>
+      </form>
+      <div class="status" id="loginStatus"></div>
+    </section>
+
+    <section class="hidden" id="dashboardPanel">
+      <div class="toolbar">
+        <div>
+          <h2>Pilot Progress</h2>
+          <p id="updatedAt">Loading...</p>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span>Total questions</span><strong id="totalQuestions">0</strong></div>
+        <div class="stat"><span>Today</span><strong id="todaysQuestions">0</strong></div>
+        <div class="stat"><span>Rated answers</span><strong id="ratedAnswers">0</strong></div>
+        <div class="stat"><span>Thumbs down</span><strong id="thumbsDown">0</strong></div>
+        <div class="stat"><span>Positive rate</span><strong id="positiveRate">0%</strong></div>
+      </div>
+
+      <div class="grid">
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>Recent Questions</h2>
+              <p>Latest pilot conversations and answers.</p>
+            </div>
+            <small id="recentCount">0 shown</small>
+          </div>
+          <div class="list" id="recentList"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>Needs Review</h2>
+              <p>Answers users marked thumbs down.</p>
+            </div>
+            <small id="reviewCount">0 items</small>
+          </div>
+          <div class="list" id="reviewList"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const passwordKey = 'asksheikh_dashboard_password';
+    const loginPanel = document.getElementById('loginPanel');
+    const dashboardPanel = document.getElementById('dashboardPanel');
+    const dashboardActions = document.getElementById('dashboardActions');
+    const loginForm = document.getElementById('loginForm');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginStatus = document.getElementById('loginStatus');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    function text(value, fallback = '') {
+      return value == null || value === '' ? fallback : String(value);
+    }
+
+    function shortText(value, max = 900) {
+      const clean = text(value, 'No answer recorded.');
+      return clean.length > max ? `${clean.slice(0, max)}...` : clean;
+    }
+
+    function formatDate(value) {
+      if (!value) return 'Unknown time';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString([], {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function badge(rating) {
+      if (rating === 'up') return '<span class="badge up">Thumbs up</span>';
+      if (rating === 'down') return '<span class="badge down">Thumbs down</span>';
+      return '<span class="badge">Not rated</span>';
+    }
+
+    function itemTemplate(item) {
+      const feedback = item.feedback
+        ? `<p class="feedback"><strong>Feedback:</strong> ${escapeHtml(item.feedback)}</p>`
+        : '';
+      return `
+        <article class="item">
+          <div class="meta">
+            <span>${escapeHtml(formatDate(item.createdAt))}</span>
+            ${badge(item.rating)}
+          </div>
+          <p class="question">${escapeHtml(text(item.question, 'No question recorded.'))}</p>
+          <p class="answer">${escapeHtml(shortText(item.answer))}</p>
+          ${feedback}
+        </article>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return text(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function renderList(element, items, emptyText) {
+      if (!items.length) {
+        element.innerHTML = `<div class="empty">${emptyText}</div>`;
+        return;
+      }
+      element.innerHTML = items.map(itemTemplate).join('');
+    }
+
+    function setVisible(isOpen) {
+      loginPanel.classList.toggle('hidden', isOpen);
+      dashboardPanel.classList.toggle('hidden', !isOpen);
+      dashboardActions.classList.toggle('hidden', !isOpen);
+    }
+
+    async function loadDashboard() {
+      const password = localStorage.getItem(passwordKey);
+      if (!password) {
+        setVisible(false);
+        return;
+      }
+
+      setVisible(true);
+      document.getElementById('updatedAt').textContent = 'Refreshing...';
+
+      const res = await fetch('/dashboard-data', {
+        headers: { 'x-dashboard-password': password }
+      });
+
+      if (!res.ok) {
+        localStorage.removeItem(passwordKey);
+        setVisible(false);
+        loginStatus.textContent = res.status === 401
+          ? 'Wrong password. Try again.'
+          : 'Dashboard could not load. Check Railway logs or Azure Storage settings.';
+        return;
+      }
+
+      const data = await res.json();
+      const stats = data.stats || {};
+
+      document.getElementById('totalQuestions').textContent = stats.totalQuestions || 0;
+      document.getElementById('todaysQuestions').textContent = stats.todaysQuestions || 0;
+      document.getElementById('ratedAnswers').textContent = stats.ratedAnswers || 0;
+      document.getElementById('thumbsDown').textContent = stats.thumbsDown || 0;
+      document.getElementById('positiveRate').textContent = `${stats.positiveRate || 0}%`;
+      document.getElementById('updatedAt').textContent = `Updated ${formatDate(data.generatedAt)}`;
+      document.getElementById('recentCount').textContent = `${(data.recent || []).length} shown`;
+      document.getElementById('reviewCount').textContent = `${(data.needsReview || []).length} items`;
+
+      renderList(
+        document.getElementById('recentList'),
+        data.recent || [],
+        'No conversations logged yet.'
+      );
+      renderList(
+        document.getElementById('reviewList'),
+        data.needsReview || [],
+        'No thumbs down feedback yet.'
+      );
+    }
+
+    loginForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const password = passwordInput.value.trim();
+      if (!password) {
+        loginStatus.textContent = 'Enter the dashboard password.';
+        return;
+      }
+      localStorage.setItem(passwordKey, password);
+      loginStatus.textContent = '';
+      loadDashboard();
+    });
+
+    refreshBtn.addEventListener('click', loadDashboard);
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem(passwordKey);
+      passwordInput.value = '';
+      loginStatus.textContent = '';
+      setVisible(false);
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>
