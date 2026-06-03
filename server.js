@@ -93,11 +93,11 @@ function getStorageConfig() {
   return storageConfig;
 }
 
-function tableStorageHeaders(method, tableName, body = '') {
+function tableStorageHeaders(method, tableName, body = '', resourcePath = tableName) {
   const config = getStorageConfig();
   const date = new Date().toUTCString();
   const contentType = method === 'GET' ? '' : 'application/json';
-  const resource = `/${config.accountName}/${tableName}`;
+  const resource = `/${config.accountName}/${resourcePath}`;
   const stringToSign = [method, '', contentType, date, resource].join('\n');
   const signature = crypto
     .createHmac('sha256', Buffer.from(config.accountKey, 'base64'))
@@ -145,7 +145,7 @@ async function queryTableEntities(tableName, options = {}) {
 
   const res = await fetch(`${config.endpoint}/${tableName}()?${params.toString()}`, {
     method: 'GET',
-    headers: tableStorageHeaders('GET', tableName)
+    headers: tableStorageHeaders('GET', tableName, '', `${tableName}()`)
   });
 
   if (!res.ok) {
@@ -375,11 +375,16 @@ app.get('/dashboard', (req, res) => {
 });
 
 app.get('/dashboard-data', requireDashboardPassword, async (req, res) => {
-  const [conversations, feedback] = await Promise.all([
-    queryTableEntities(CONVERSATIONS_TABLE, { top: 500 }),
-    queryTableEntities(FEEDBACK_TABLE, { top: 500 })
-  ]);
-  res.json(dashboardSummary(conversations, feedback));
+  try {
+    const [conversations, feedback] = await Promise.all([
+      queryTableEntities(CONVERSATIONS_TABLE, { top: 500 }),
+      queryTableEntities(FEEDBACK_TABLE, { top: 500 })
+    ]);
+    res.json(dashboardSummary(conversations, feedback));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/chat', async (req, res) => {
